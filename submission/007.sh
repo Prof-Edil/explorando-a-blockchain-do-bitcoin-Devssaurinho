@@ -1,18 +1,21 @@
 # Only one single output remains unspent from block 123,321. What address was it sent to?
 BLOCK_HASH=$(bitcoin-cli getblockhash 123321)
-TX_IDS=$(bitcoin-cli getblock $BLOCK_HASH | jq -r .tx[])
+readarray -t GET_TRANSACTIONS < <(bitcoin-cli getblock $BLOCK_HASH | jq -r .tx[])
 
-for TX_ID in $TX_IDS; do
+for TX_ID in "${GET_TRANSACTIONS[@]}"
+do  
     RAW_TX=$(bitcoin-cli getrawtransaction "$TX_ID" 1 | jq -c .)
-    OUTPUTS_LIST=$(echo "$RAW_TX" | jq -c .vout[])
+    readarray -t GET_OUTPUTS < <(echo "$RAW_TX" | jq -c .vout[])
 
-    for OUTPUT in $OUTPUTS_LIST; do
-        VOUT_INDEX=$(echo $OUTPUT | jq -r .n)
+    for GET_OUTPUT in "${GET_OUTPUTS[@]}"
+    do
+        VOUT_INDEX=$(echo $GET_OUTPUT | jq -r .n)
         UNSPENT_OUTPUT=$(bitcoin-cli gettxout $TX_ID $VOUT_INDEX)
 
-        if [[ $UNSPENT_OUTPUT ]]; then
-            RECEIVER_ADDRESS=$(echo $UNSPENT_OUTPUT | jq -r .scriptPubKey.address)
-            echo $RECEIVER_ADDRESS
+        if [[ $UNSPENT_OUTPUT ]]
+        then
+            GET_ADDRESS=$(echo $UNSPENT_OUTPUT | jq -r .scriptPubKey.address)
+            echo $GET_ADDRESS
         fi
     done
 done
